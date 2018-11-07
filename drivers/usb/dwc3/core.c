@@ -1340,13 +1340,11 @@ static int dwc3_probe(struct platform_device *pdev)
 	if (ret)
 		goto err2;
 
-	if (dwc->dr_mode == USB_DR_MODE_OTG ||
-		dwc->dr_mode == USB_DR_MODE_PERIPHERAL) {
-		ret = dwc3_gadget_init(dwc);
-		if (ret) {
-			dev_err(dwc->dev, "gadget init failed %d\n", ret);
-			goto err3;
-		}
+	ret = dwc3_core_init(dwc);
+	if (ret) {
+		if (ret != -EPROBE_DEFER)
+			dev_err(dev, "failed to initialize core: %d\n", ret);
+		goto err4;
 	}
 
 	dwc->dwc_ipc_log_ctxt = ipc_log_context_create(NUM_LOG_PAGES,
