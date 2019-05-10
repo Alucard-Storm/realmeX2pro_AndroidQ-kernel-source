@@ -1139,6 +1139,7 @@ static int ext4_ext_split(handle_t *handle, struct inode *inode,
 		le16_add_cpu(&neh->eh_entries, m);
 	}
 
+	/* zero out unused area in the extent block */
 	ext_size = sizeof(struct ext4_extent_header) +
 		sizeof(struct ext4_extent) * le16_to_cpu(neh->eh_entries);
 	memset(bh->b_data + ext_size, 0, inode->i_sb->s_blocksize - ext_size);
@@ -1221,6 +1222,7 @@ static int ext4_ext_split(handle_t *handle, struct inode *inode,
 				sizeof(struct ext4_extent_idx) * m);
 			le16_add_cpu(&neh->eh_entries, m);
 		}
+		/* zero out unused area in the extent block */
 		ext_size = sizeof(struct ext4_extent_header) +
 		   (sizeof(struct ext4_extent) * le16_to_cpu(neh->eh_entries));
 		memset(bh->b_data + ext_size, 0,
