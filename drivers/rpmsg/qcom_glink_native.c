@@ -294,9 +294,6 @@ static void qcom_glink_channel_release(struct kref *ref)
 	unsigned long flags;
 	int iid;
 
-	CH_INFO(channel, "\n");
-	wake_up(&channel->intent_req_event);
-
 	spin_lock_irqsave(&channel->intent_lock, flags);
 	idr_for_each_entry(&channel->liids, tmp, iid) {
 		kfree(tmp->data);
