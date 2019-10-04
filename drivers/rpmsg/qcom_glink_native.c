@@ -1830,97 +1830,17 @@ static void qcom_glink_work(struct work_struct *work)
 	}
 }
 
-static ssize_t rpmsg_name_show(struct device *dev,
-			       struct device_attribute *attr, char *buf)
+static void qcom_glink_cancel_rx_work(struct qcom_glink *glink)
 {
-	struct rpmsg_device *rpdev = to_rpmsg_device(dev);
-	struct glink_channel *channel = to_glink_channel(rpdev->ept);
+	struct glink_defer_cmd *dcmd;
+	struct glink_defer_cmd *tmp;
 
-	return snprintf(buf, RPMSG_NAME_SIZE, "%s\n", channel->glink->name);
+	/* cancel any pending deferred rx_work */
+	cancel_work_sync(&glink->rx_work);
+
+	list_for_each_entry_safe(dcmd, tmp, &glink->rx_queue, node)
+		kfree(dcmd);
 }
-static DEVICE_ATTR_RO(rpmsg_name);
-
-static struct attribute *qcom_glink_attrs[] = {
-	&dev_attr_rpmsg_name.attr,
-	NULL
-};
-ATTRIBUTE_GROUPS(qcom_glink);
-
-static void qcom_glink_device_release(struct device *dev)
-{
-	struct rpmsg_device *rpdev = to_rpmsg_device(dev);
-	struct glink_channel *channel = to_glink_channel(rpdev->ept);
-
-	/* Release qcom_glink_alloc_channel() reference */
-	kref_put(&channel->refcount, qcom_glink_channel_release);
-	kfree(rpdev);
-}
-
-static int qcom_glink_create_chrdev(struct qcom_glink *glink)
-{
-	struct rpmsg_device *rpdev;
-	struct glink_channel *channel;
-
-	rpdev = kzalloc(sizeof(*rpdev), GFP_KERNEL);
-	if (!rpdev)
-		return -ENOMEM;
-
-	channel = qcom_glink_alloc_channel(glink, "rpmsg_chrdev");
-	if (IS_ERR(channel)) {
-		kfree(rpdev);
-		return PTR_ERR(channel);
-	}
-	channel->rpdev = rpdev;
-
-	rpdev->ept = &channel->ept;
-	rpdev->ops = &glink_device_ops;
-	rpdev->dev.parent = glink->dev;
-	rpdev->dev.release = qcom_glink_device_release;
-
-	return rpmsg_chrdev_register_device(rpdev);
-}
-
-static void qcom_glink_set_affinity(struct qcom_glink *glink, u32 *arr,
-				    size_t size)
-{
-	struct cpumask cpumask;
-	int i;
-
-	cpumask_clear(&cpumask);
-	for (i = 0; i < size; i++) {
-		if (arr[i] < num_possible_cpus())
-			cpumask_set_cpu(arr[i], &cpumask);
-	}
-	if (irq_set_affinity(glink->irq, &cpumask))
-		dev_err(glink->dev, "failed to set irq affinity\n");
-	if (sched_setaffinity(glink->task->pid, &cpumask))
-		dev_err(glink->dev, "failed to set task affinity\n");
-}
-
-static void qcom_glink_notif_reset(void *data)
-{
-	struct qcom_glink *glink = data;
-	struct glink_channel *channel;
-	unsigned long flags;
-	int cid;
-
-	if (!glink)
-		return;
-	atomic_inc(&glink->in_reset);
-
-	spin_lock_irqsave(&glink->idr_lock, flags);
-	idr_for_each_entry(&glink->lcids, channel, cid) {
-		wake_up(&channel->intent_req_event);
-	}
-	spin_unlock_irqrestore(&glink->idr_lock, flags);
-}
-
-#ifdef VENDOR_EDIT
-//Nanwei.Deng@BSP.Power.Basic, 2019/05/30 add for RM_TAG_POWER_DEBUG
-#define GLINK_NATIVE_IRQ_NUM_MAX 10
-#define GLINK_NATIVE_IRQ_NAME_LEN 24
-static char glink_native_irq_names[GLINK_NATIVE_IRQ_NUM_MAX][GLINK_NATIVE_IRQ_NAME_LEN];
-#endif/*VENDOR_EDIT*/
 
 struct qcom_glink *qcom_glink_native_probe(struct device *dev,
 					   unsigned long features,
@@ -2070,7 +1990,7 @@ void qcom_glink_native_remove(struct qcom_glink *glink)
 	subsys_unregister_early_notifier(glink->name, XPORT_LAYER_NOTIF);
 	qcom_glink_notif_reset(glink);
 	disable_irq(glink->irq);
-	cancel_work_sync(&glink->rx_work);
+	qcom_glink_cancel_rx_work(glink);
 
 	ret = device_for_each_child(glink->dev, NULL, qcom_glink_remove_device);
 	if (ret)
