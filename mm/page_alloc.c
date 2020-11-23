@@ -68,11 +68,7 @@
 #include <linux/ftrace.h>
 #include <linux/lockdep.h>
 #include <linux/nmi.h>
-<<<<<<< HEAD
-#include <linux/psi.h>
-=======
 #include <linux/khugepaged.h>
->>>>>>> b7107a74cac78 (mm: khugepaged: recalculate min_free_kbytes after memory hotplug as expected by khugepaged)
 
 #include <asm/sections.h>
 #include <asm/tlbflush.h>
