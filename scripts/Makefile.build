@@ -281,6 +281,7 @@ sub_cmd_record_mcount = set -e ; perl $(srctree)/scripts/recordmcount.pl "$(ARCH
 
 recordmcount_source := $(srctree)/scripts/recordmcount.pl
 endif # BUILD_C_RECORDMCOUNT
+endif # CONFIG_FTRACE_MCOUNT_RECORD
 
 ifndef CONFIG_LTO_CLANG
 cmd_record_mcount =						\
