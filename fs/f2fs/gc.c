@@ -1173,7 +1173,7 @@ static int do_garbage_collect(struct f2fs_sb_info *sbi,
 				"type [%d, %d] in SSA and SIT",
 				segno, type, GET_SUM_TYPE((&sum->footer)));
 			set_sbi_flag(sbi, SBI_NEED_FSCK);
-			goto skip;
+			goto next;
 		}
 
 		/*
@@ -1196,11 +1196,7 @@ freed:
 		if (gc_type == FG_GC &&
 				get_valid_blocks(sbi, segno, false) == 0)
 			seg_freed++;
-		migrated++;
-
-		if (__is_large_section(sbi) && segno + 1 < end_segno)
-			sbi->next_victim_seg[gc_type] = segno + 1;
-skip:
+next:
 		f2fs_put_page(sum_page, 0);
 	}
 

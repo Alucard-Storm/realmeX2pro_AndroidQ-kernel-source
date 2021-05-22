@@ -1840,7 +1840,7 @@ static int insert_pfn(struct vm_area_struct *vma, unsigned long addr,
 				goto out_unlock;
 			}
 			entry = pte_mkyoung(*pte);
-			entry = maybe_mkwrite(pte_mkdirty(entry), vma);
+			entry = maybe_mkwrite(pte_mkdirty(entry), vma->vm_flags);
 			if (ptep_set_access_flags(vma, addr, pte, entry, 1))
 				update_mmu_cache(vma, addr, pte);
 		}
@@ -2741,7 +2741,7 @@ static int wp_page_copy(struct vm_fault *vmf)
 		new_page = alloc_page_vma(GFP_HIGHUSER_MOVABLE, vma,
 				vmf->address);
 		if (!new_page)
-			goto oom;
+			goto out;
 
 		if (!cow_user_page(new_page, old_page, vmf)) {
 			/*

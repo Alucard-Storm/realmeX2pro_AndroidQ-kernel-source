@@ -2078,6 +2078,19 @@ void f2fs_quota_off_umount(struct super_block *sb)
 	sync_filesystem(sb);
 }
 
+static void f2fs_truncate_quota_inode_pages(struct super_block *sb)
+{
+	struct quota_info *dqopt = sb_dqopt(sb);
+	int type;
+
+	for (type = 0; type < MAXQUOTAS; type++) {
+		if (!dqopt->files[type])
+			continue;
+		f2fs_inode_synced(dqopt->files[type]);
+	}
+}
+
+
 static int f2fs_get_projid(struct inode *inode, kprojid_t *projid)
 {
 	*projid = F2FS_I(inode)->i_projid;
@@ -2086,11 +2099,11 @@ static int f2fs_get_projid(struct inode *inode, kprojid_t *projid)
 
 static const struct dquot_operations f2fs_quota_operations = {
 	.get_reserved_space = f2fs_get_reserved_space,
-	.write_dquot	= f2fs_dquot_commit,
-	.acquire_dquot	= f2fs_dquot_acquire,
-	.release_dquot	= f2fs_dquot_release,
-	.mark_dirty	= f2fs_dquot_mark_dquot_dirty,
-	.write_info	= f2fs_dquot_commit_info,
+	.write_dquot	= dquot_commit,
+	.acquire_dquot	= dquot_acquire,
+	.release_dquot	= dquot_release,
+	.mark_dirty	= dquot_mark_dquot_dirty,
+	.write_info	= dquot_commit_info,
 	.alloc_dquot	= dquot_alloc,
 	.destroy_dquot	= dquot_destroy,
 	.get_projid	= f2fs_get_projid,

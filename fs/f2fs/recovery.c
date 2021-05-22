@@ -234,18 +234,17 @@ static void recover_inline_flags(struct inode *inode, struct f2fs_inode *ri)
 		clear_inode_flag(inode, FI_DATA_EXIST);
 }
 
-static int recover_inode(struct inode *inode, struct page *page)
+static void recover_inode(struct inode *inode, struct page *page)
 {
 	struct f2fs_inode *raw = F2FS_INODE(page);
 	char *name;
-	int err;
 
 	inode->i_mode = le16_to_cpu(raw->i_mode);
 	i_uid_write(inode, le32_to_cpu(raw->i_uid));
 	i_gid_write(inode, le32_to_cpu(raw->i_gid));
 
 	if (raw->i_inline & F2FS_EXTRA_ATTR) {
-		if (f2fs_sb_has_project_quota(F2FS_I_SB(inode)->sb) &&
+		if (f2fs_sb_has_project_quota(F2FS_I_SB(inode)) &&
 			F2FS_FITS_IN_INODE(raw, le16_to_cpu(raw->i_extra_isize),
 								i_projid)) {
 			projid_t i_projid;
@@ -284,7 +283,6 @@ static int recover_inode(struct inode *inode, struct page *page)
 	f2fs_msg(inode->i_sb, KERN_NOTICE,
 		"recover_inode: ino = %x, name = %s, inline = %x",
 			ino_of_node(page), name, raw->i_inline);
-	return 0;
 }
 
 static int find_fsync_dnodes(struct f2fs_sb_info *sbi, struct list_head *head,
@@ -661,11 +659,8 @@ static int recover_data(struct f2fs_sb_info *sbi, struct list_head *inode_list,
 		 * In this case, we can lose the latest inode(x).
 		 * So, call recover_inode for the inode update.
 		 */
-		if (IS_INODE(page)) {
-			err = recover_inode(entry->inode, page);
-			if (err)
-				break;
-		}
+		if (IS_INODE(page))
+			recover_inode(entry->inode, page);
 		if (entry->last_dentry == blkaddr) {
 			err = recover_dentry(entry->inode, page, dir_list);
 			if (err) {

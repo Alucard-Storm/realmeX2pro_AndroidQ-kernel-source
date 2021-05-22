@@ -272,33 +272,6 @@ early_param("ssbd", ssbd_cfg);
 
 void arm64_set_ssbd_mitigation(bool state)
 {
-	if (this_cpu_has_cap(ARM64_SSBS)) {
-		if (state)
-			asm volatile(SET_PSTATE_SSBS(0));
-		else
-			asm volatile(SET_PSTATE_SSBS(1));
-		return;
-	}
-
-	*updptr = cpu_to_le32(insn);
-}
-
-void __init arm64_enable_wa2_handling(struct alt_instr *alt,
-				      __le32 *origptr, __le32 *updptr,
-				      int nr_inst)
-{
-	BUG_ON(nr_inst != 1);
-	/*
-	 * Only allow mitigation on EL1 entry/exit and guest
-	 * ARCH_WORKAROUND_2 handling if the SSBD state allows it to
-	 * be flipped.
-	 */
-	if (arm64_get_ssbd_state() == ARM64_SSBD_KERNEL)
-		*updptr = cpu_to_le32(aarch64_insn_gen_nop());
-}
-
-void arm64_set_ssbd_mitigation(bool state)
-{
 	if (!IS_ENABLED(CONFIG_ARM64_SSBD)) {
 		pr_info_once("SSBD disabled by kernel configuration\n");
 		return;
@@ -599,12 +572,6 @@ const struct arm64_cpu_capabilities arm64_errata[] = {
 		.capability = ARM64_WORKAROUND_845719,
 		ERRATA_MIDR_REV_RANGE(MIDR_CORTEX_A53, 0, 0, 4),
 	},
-	{
-	/* Kryo2xx Silver rAp4 */
-		.desc = "Kryo2xx Silver erratum 845719",
-		.capability = ARM64_WORKAROUND_845719,
-		MIDR_RANGE(MIDR_KRYO2XX_SILVER, 0xA00004, 0xA00004),
-	},
 #endif
 #ifdef CONFIG_CAVIUM_ERRATUM_23154
 	{
@@ -692,15 +659,17 @@ const struct arm64_cpu_capabilities arm64_errata[] = {
 	/* Cortex-A76 r0p0 to r3p0 */
 		.desc = "ARM erratum 1286807",
 		.capability = ARM64_WORKAROUND_REPEAT_TLBI,
-		MIDR_RANGE(MIDR_CORTEX_A76,
-			   MIDR_CPU_VAR_REV(0, 0),
-			   MIDR_CPU_VAR_REV(3, 0)),
+		ERRATA_MIDR_RANGE(MIDR_CORTEX_A76, 0, 0, 3, 0),
 	},
 	{
 		.capability = ARM64_WORKAROUND_REPEAT_TLBI,
-		MIDR_RANGE(MIDR_KRYO4G,
-			   MIDR_CPU_VAR_REV(12, 14),
-			   MIDR_CPU_VAR_REV(13, 14)),
+		ERRATA_MIDR_RANGE(MIDR_KRYO4G, 12, 14, 13, 14),
+	},
+	{
+	/* Cortex-A76 r0p0 to r3p0 */
+		.desc = "ARM erratum 1286807",
+		.capability = ARM64_WORKAROUND_REPEAT_TLBI,
+		ERRATA_MIDR_RANGE(MIDR_CORTEX_A76, 0, 0, 3, 0),
 	},
 #endif
 #ifdef CONFIG_ARM64_ERRATUM_858921
@@ -709,12 +678,6 @@ const struct arm64_cpu_capabilities arm64_errata[] = {
 		.desc = "ARM erratum 858921",
 		.capability = ARM64_WORKAROUND_858921,
 		ERRATA_MIDR_ALL_VERSIONS(MIDR_CORTEX_A73),
-	},
-	{
-	/* KRYO2XX all versions */
-		.desc = "ARM erratum 858921",
-		.capability = ARM64_WORKAROUND_858921,
-		MIDR_ALL_VERSIONS(MIDR_KRYO2XX_GOLD),
 	},
 #endif
 	{

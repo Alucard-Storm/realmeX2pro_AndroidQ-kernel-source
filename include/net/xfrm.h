@@ -1993,14 +1993,6 @@ static inline __u32 xfrm_smark_get(__u32 mark, struct xfrm_state *x)
 	return (m->v & m->m) | (mark & ~m->m);
 }
 
-static inline int xfrm_if_id_put(struct sk_buff *skb, __u32 if_id)
-{
-	int ret = 0;
-
-	if (if_id)
-		ret = nla_put_u32(skb, XFRMA_IF_ID, if_id);
-	return ret;
-}
 
 static inline int xfrm_tunnel_check(struct sk_buff *skb, struct xfrm_state *x,
 				    unsigned int family)

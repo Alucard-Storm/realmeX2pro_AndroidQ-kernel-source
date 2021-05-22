@@ -370,7 +370,6 @@ static void __qrtr_node_release(struct kref *kref)
 	kthread_flush_worker(&node->kworker);
 	kthread_stop(node->task);
 
-	cancel_work_sync(&node->work);
 	skb_queue_purge(&node->rx_queue);
 	kfree(node);
 }
@@ -746,9 +745,33 @@ int qrtr_endpoint_post(struct qrtr_endpoint *ep, const void *data, size_t len)
 		cb->dst_node = le32_to_cpu(v1->dst_node_id);
 		cb->dst_port = le32_to_cpu(v1->dst_port_id);
 
-	skb = __netdev_alloc_skb(NULL, len, GFP_ATOMIC | __GFP_NOWARN);
-	if (!skb)
-		return -ENOMEM;
+		size = le32_to_cpu(v1->size);
+		break;
+	case QRTR_PROTO_VER_2:
+		v2 = data;
+		hdrlen = sizeof(*v2) + v2->optlen;
+
+		cb->type = v2->type;
+		cb->confirm_rx = !!(v2->flags & QRTR_FLAGS_CONFIRM_RX);
+		cb->src_node = le16_to_cpu(v2->src_node_id);
+		cb->src_port = le16_to_cpu(v2->src_port_id);
+		cb->dst_node = le16_to_cpu(v2->dst_node_id);
+		cb->dst_port = le16_to_cpu(v2->dst_port_id);
+
+		if (cb->src_port == (u16)QRTR_PORT_CTRL)
+			cb->src_port = QRTR_PORT_CTRL;
+		if (cb->dst_port == (u16)QRTR_PORT_CTRL)
+			cb->dst_port = QRTR_PORT_CTRL;
+
+		size = le32_to_cpu(v2->size);
+		break;
+	default:
+		pr_err("qrtr: Invalid version %d\n", ver);
+		goto err;
+	}
+
+	if (cb->dst_port == QRTR_PORT_CTRL_LEGACY)
+		cb->dst_port = QRTR_PORT_CTRL;
 
 	if (len != ALIGN(size, 4) + hdrlen)
 		goto err;
@@ -1436,7 +1459,7 @@ static int qrtr_bcast_enqueue(struct qrtr_node *node, struct sk_buff *skb,
 	}
 	up_read(&qrtr_node_lock);
 
-	qrtr_local_enqueue(NULL, skb);
+	qrtr_local_enqueue(node, skb, type, from, to, flags);
 
 	return 0;
 }
