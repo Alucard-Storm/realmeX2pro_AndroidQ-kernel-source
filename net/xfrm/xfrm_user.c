@@ -1774,8 +1774,6 @@ static int dump_one_policy(struct xfrm_policy *xp, int dir, int count, void *ptr
 		err = copy_to_user_policy_type(xp->type, skb);
 	if (!err)
 		err = xfrm_mark_put(skb, &xp->mark);
-	if (!err)
-		err = xfrm_if_id_put(skb, xp->if_id);
 	if (err) {
 		nlmsg_cancel(skb, nlh);
 		return err;
@@ -2011,10 +2009,6 @@ static int build_aevent(struct sk_buff *skb, struct xfrm_state *x, const struct 
 			goto out_cancel;
 	}
 	err = xfrm_mark_put(skb, &x->mark);
-	if (err)
-		goto out_cancel;
-
-	err = xfrm_if_id_put(skb, x->if_id);
 	if (err)
 		goto out_cancel;
 
@@ -2708,10 +2702,6 @@ static int build_expire(struct sk_buff *skb, struct xfrm_state *x, const struct 
 	if (err)
 		return err;
 
-	err = xfrm_if_id_put(skb, x->if_id);
-	if (err)
-		return err;
-
 	nlmsg_end(skb, nlh);
 	return 0;
 }
@@ -2939,8 +2929,6 @@ static int build_acquire(struct sk_buff *skb, struct xfrm_state *x,
 		err = copy_to_user_policy_type(xp->type, skb);
 	if (!err)
 		err = xfrm_mark_put(skb, &xp->mark);
-	if (!err)
-		err = xfrm_if_id_put(skb, xp->if_id);
 	if (err) {
 		nlmsg_cancel(skb, nlh);
 		return err;
@@ -3056,8 +3044,6 @@ static int build_polexpire(struct sk_buff *skb, struct xfrm_policy *xp,
 		err = copy_to_user_policy_type(xp->type, skb);
 	if (!err)
 		err = xfrm_mark_put(skb, &xp->mark);
-	if (!err)
-		err = xfrm_if_id_put(skb, xp->if_id);
 	if (err) {
 		nlmsg_cancel(skb, nlh);
 		return err;
@@ -3137,8 +3123,6 @@ static int xfrm_notify_policy(struct xfrm_policy *xp, int dir, const struct km_e
 		err = copy_to_user_policy_type(xp->type, skb);
 	if (!err)
 		err = xfrm_mark_put(skb, &xp->mark);
-	if (!err)
-		err = xfrm_if_id_put(skb, xp->if_id);
 	if (err)
 		goto out_free_skb;
 

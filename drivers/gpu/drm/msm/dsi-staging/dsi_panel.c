@@ -24,9 +24,14 @@
 #include "dsi_ctrl_hw.h"
 #include "dsi_parser.h"
 
+#ifdef VENDOR_EDIT
+/* Gou shengjun@PSW.MM.Display.LCD.Stability,2018/12/13
+ * Add for get boot mode.
+*/
 #include <soc/oppo/boot_mode.h>
 #include <soc/oppo/oppo_project.h>
 #include <linux/atomic.h>
+#endif /*VENDOR_EDIT*/
 
 /**
  * topology is currently defined by a set of following 3 values:
